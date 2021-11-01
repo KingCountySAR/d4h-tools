@@ -1,0 +1,310 @@
+https://api.d4h.org/v2/documentation
+
+get
+Retrieve details about the current team
+get
+Return a list of activities
+get
+Retrieve all current attendance records.
+post
+Add an attendance record.
+get
+Retrieve a list of Custom Fields
+post
+Create a Custom Field
+get
+Retrieve a list of duties
+post
+Create a duty record for a member
+get
+Retrieve a list of equipment items belonging to a team
+get
+Return a list of events
+post
+Create an event
+get
+Return a list of exercises
+post
+Create an exercise
+get
+Retrieve a list of group resources
+get
+Get the teams's logo
+get
+Return a list of incidents
+post
+Create an incident
+get
+Return a list of inspection result resources
+get
+Return a list of inspection resources
+get
+Retrieve a list of locations
+get
+Retrieve a list of active member resources
+get
+Return a list of qualification resources
+get
+Return a list of repair resources
+post
+Create a single repair resource
+get
+Retrieve all available roles
+get
+Get search results for a particular keyword and, optionally, entity-type
+get
+Check the value of a team setting
+get
+Retrieve a list of tasks
+post
+Create a task
+get
+Retrieve all whiteboard contents. By default, only current posts.
+post
+Add a whiteboard message
+get
+Return an activity
+get
+Retrieve a specific attendance record.
+delete
+Delete an attendance record.
+put
+Update a specific attendance record
+get
+Retrieve a list of Custom Field Bundles
+get
+Retrieve a single Custom Field
+delete
+Delete a Custom Field
+put
+Update a Custom Field
+get
+Get a duty record
+delete
+Delete a duty record for a member.
+put
+Update a duty record for a member
+get
+Retrieve a list your equipment brands
+post
+Create a gear brand
+get
+Retrieve a list of equipment categories
+post
+Create an equipment category
+get
+Retrieve a list of your equipment funding sources
+post
+Create an equipment funding source
+get
+Retrieve a list your equipment kinds
+post
+Create an equipment kind
+get
+Retrieve a list of equipment locations
+get
+Retrieve a list your equipment models
+post
+Create a gear model
+get
+Retrieve a list of equipment retired-reasons
+post
+Create an equipment retired-reason
+put
+Upsert Equipment retired reasons
+get
+Retrieve a list of equipment statuses
+get
+Get an overview of the items
+get
+Retrieve a list of equipment suppliers
+post
+Create an equipment supplier
+get
+Retrieve a list your equipment supplier's refs
+post
+Create an equipment supplier's ref
+get
+Retrieve a single equipment item by its id
+put
+Update a single equipment item
+get
+Return an event
+get
+Return an exercise
+get
+Retrieve a single group resource
+get
+Return an incident
+get
+Return a single inspection result resource
+put
+Update a single inspection result resource
+get
+Return a single inspection resource
+put
+Update a single inspection resource
+get
+Get a single location record
+delete
+Delete a location.
+get
+Retrieve a single member
+put
+Update a single member's details
+get
+Return a single qualification resource
+get
+Return a single repair resource
+put
+Update a single repair resource
+get
+Retrieve a specific role.
+get
+Retrieve a single task
+delete
+Delete a task
+put
+Update a task
+get
+Retrieve details about a team
+get
+Retrieve a specific whiteboard message
+delete
+Delete a specific whiteboard message
+put
+Update a specific whiteboard message
+get
+Retrieve the Custom Fields and values for a list of entities
+put
+Update an entity's Custom Field value
+get
+Get a single equipment item by it's ref or barcode
+get
+Get a single equipment brand's details
+delete
+Delete a gear brand.
+put
+Update a gear brand
+get
+Get details of a single equipment category
+delete
+Delete a gear category.
+put
+Update an equipment category
+get
+Retrieve a single equipment funding source
+delete
+Delete an equipment funding source
+put
+Update an equipment funding source
+get
+Get a single equipment type's details
+delete
+Delete an equipment kind
+put
+Update an equipment kind
+get
+Get details for a single location
+get
+Get a single equipment model's details
+delete
+Delete a gear model.
+put
+Update a gear model
+get
+Get a single equipment item by its ref or barcode
+get
+Get a single equipment retired-reason's details
+delete
+Delete an equipment retired-reason
+put
+Update an equipment retired-reason
+get
+Get a single equipment supplier's details
+delete
+Delete an equipment supplier
+put
+Update an equipment supplier
+get
+Get the details of a single equipment supplier's ref
+delete
+Delete an equipment supplier's ref
+put
+Update an equipment supplier's ref
+get
+Get a single equipment item's profile image
+put
+Update a single equipment item's profile image
+get
+List of inspections related to an equipment item
+get
+Get the contents of a single equipment item.
+get
+Return a list of equipment usages for this event
+post
+Add equipment usage to this event
+get
+Return a list of equipment usages for this exercise
+post
+Add equipment usage to this exercise
+get
+Return a list of equipment usages for this incident
+post
+Add equipment usage to this incident
+get
+Return the equipment to be inspected within an inspection resource
+get
+Return the items to be inspected within an inspection resource
+get
+Get the member's emergency contacts
+put
+Update the member's emergency contacts
+get
+Get a single member's profile image
+get
+Return a list of qualification awards by member
+get
+Retrieve a single active member resource
+get
+Retrieve a the groups for a member
+get
+Return a list of qualified members
+post
+Creates a qualification award for a member
+get
+Get a single gear_brand's profile image
+get
+Get a single gear_model's profile image
+get
+Get a single supplier's profile image
+get
+Retrieve a single equipment usage for this event
+put
+Update an equipment usage to this event
+get
+Retrieve a single equipment usage for this exercise
+put
+Update an equipment usage to this exercise
+get
+Retrieve a single equipment usage for this incident
+put
+Update an equipment usage to this incident
+get
+Return a single item to be inspected within an inspection resource
+put
+Add a new inspection result
+get
+Check if an id-tag is unique as applied to a specific member
+put
+Update an event
+put
+Update an exercise
+put
+Update an incident
+put
+Update a location record
+put
+Change an equipment resources service status. Deprecated: Update status on equipment item directly.
+put
+Move a single equipment item
