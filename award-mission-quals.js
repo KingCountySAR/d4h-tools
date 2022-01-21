@@ -1,4 +1,4 @@
-import { d4hClient } from './d4h.js';
+import { d4hClient, getChunkedList } from './d4h.js';
 import { subMonths, isAfter, addMonths, parseISO } from 'date-fns';
 
 const NOTE_PREFIX = 'cc-script:';
@@ -9,18 +9,6 @@ const rules = [
 ]
 
 const cutoff = new Date(Math.min.apply(this, rules.map(r => r.cutoff.getTime())));
-
-async function getChunkedList(name, url) {
-  let list = [];
-  let chunk = [];
-  do {
-    chunk = (await d4hClient.get(`${url}${url.includes('?') ? '&' : '?'}limit=250&offset=${list.length}`)).data.data;
-    list = [ ...list, ...chunk ];
-    console.log(`${name}: ${list.length}`);
-  } while (chunk.length >= 250);
-
-  return list;
-}
 
 async function body() {
   const memberLookup = (await getChunkedList('members', `team/members?include_details=true`)).reduce((accum, cur) => ({ ...accum, [cur.id]: cur}), {});

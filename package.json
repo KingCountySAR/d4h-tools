@@ -1,7 +1,7 @@
 {
   "name": "d4h-tools",
   "version": "1.0.0",
-  "type":"module",
+  "type": "module",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.23.0",
-    "date-fns": "^2.25.0"
+    "date-fns": "^2.25.0",
+    "neat-csv": "^7.0.0"
   }
 }
