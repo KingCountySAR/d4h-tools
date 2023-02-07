@@ -1,4 +1,4 @@
-import { d4hClient, getChunkedList } from './d4h.js';
+import { d4hClient, getChunkedList, saveBundle } from './d4h.js';
 import { subMonths, isAfter, addMonths, parseISO } from 'date-fns';
 
 const NOTE_PREFIX = 'cc-script:';
@@ -11,7 +11,13 @@ const rules = [
 const cutoff = new Date(Math.min.apply(this, rules.map(r => r.cutoff.getTime())));
 
 async function body() {
-  const memberLookup = (await getChunkedList('members', `team/members?include_details=true`)).reduce((accum, cur) => ({ ...accum, [cur.id]: cur}), {});
+  const qualsNotesField = (await getChunkedList('fields', `team/custom-fields`)).find(f => f.title === 'Qualification Scripts');
+  if (!qualsNotesField) {
+    console.log('Can\'t find Qualifications field');
+    return;
+  }
+  const memberLookup = (await getChunkedList('members', `team/members?include_details=true&include_custom_fields=true`)).reduce((accum, cur) => ({ ...accum, [cur.id]: cur}), {});
+  
   const signins = await getChunkedList('rosters', `team/attendance?activity=incident&status=attending&sort=date:desc&after=${cutoff.toJSON()}`);
 
   let members = rules.reduce((accum, cur) => ({ ...accum, [cur.name]: {}}), {});
@@ -38,24 +44,29 @@ async function body() {
     }
   }
 
-  awards = awards;//.filter(f => f.member.name == 'Cosand, Matt');
   for (let i = 0; i< awards.length; i++) {
     const a = awards[i];
+    if (!a.member) {
+      if (a.award.test) {
+        console.log(`Entry for test award: ${a.award.name}`);
+        continue;
+      } else {
+        console.log('Unknown member', a);
+        return;
+      }
+    }
+
     console.log(`${a.date} - ${a.member.name} - ${a.award.name}`);
     
     let dirty = false;
-    //const qualsResponse = await d4hClient.get(`team/members/${a.member.id}/qualification-awards`);
-
-    const noteLines = (a.member.notes?.replace(/\\\r/g, '\r').replace(/\\\n/g, '\n') ?? '').split('\r\n') ?? [];
-    const otherNotes = noteLines.filter(l => !l.startsWith(NOTE_PREFIX));
-
-    const scriptNoteLine = noteLines.filter(l => l.startsWith(NOTE_PREFIX))[0]?.substr(10)?.replace(/\\"/g, '"') ?? '{}';
     let noteInfo;
+    const fieldValue = a.member.custom_fields.find(mf => mf.id === qualsNotesField.id)?.value;
+  
     try {
-      console.log(`**${scriptNoteLine}**`);
-      noteInfo = JSON.parse(scriptNoteLine);
+      console.log(`##${fieldValue}##`);
+      noteInfo = JSON.parse(fieldValue ?? {});
     } catch (err) { 
-      console.log(`Failed to parse cc-script note for ${a.member.name}: **${scriptNoteLine}** ${err}`);
+      console.log(`Failed to parse cc-script note for ${a.member.name}: **${fieldValue}** ${err}`);
       noteInfo = {};
     }
 
@@ -79,23 +90,25 @@ async function body() {
       const params = new URLSearchParams()
       params.append('member_id', a.member.id)
       params.append('start_date', a.date)
+      console.log("Should write new qualification record");
       const response = await d4hClient.post(`team/qualifications/${qid}/qualified-members`, params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }});
       noteInfo[qid] = a.date.substr(0, 10);
       dirty = true;
     }
 
-    if (noteLines.filter(l => l.startsWith(NOTE_PREFIX)).length > 1) {
-      console.log('  removing extra note line(s)')
-      dirty = true;
-    }
-
     if (dirty) {
       console.log('  updating notes')
-      const newNotes = [ ...otherNotes, `${NOTE_PREFIX}${JSON.stringify(noteInfo)}`].join('\r\n');
-      const params = new URLSearchParams();
-      params.append('notes', newNotes);
-    
-      await d4hClient.put(`team/members/${a.member.id}`, params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }});
+
+      // Silly API makes us update the bundle all at once.
+      // Fetch the user's fields in the same bundle as Secondary Email to make sure we have the latest copy.
+      const bundle = (await getChunkedList('fields', `team/custom-fields/member/${a.member.id}`)).filter(f => f.bundle_id === qualsNotesField.bundle_id);
+      // Create a list of field_id / values for the bundle, replacing the Secondary Email value
+      const fieldValues = bundle.map(f => ({
+        id: f.id,
+        value: f.id == qualsNotesField.id ? JSON.stringify(noteInfo) : a.member.custom_fields.find(mf => mf.id === f.id)?.value
+      }));
+      // Save the bundle
+      await saveBundle('member', a.member.id, { fields: fieldValues });
     }
   }
   console.log(awards.length)
