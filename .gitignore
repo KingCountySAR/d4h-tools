@@ -1,4 +1,8 @@
 /config.json
 /data
 
+/reconcile-sartopo.json
+/reconcile-sartopo-*.json
+/User_Download_*.csv
+
 node_modules

@@ -1,6 +1,16 @@
+/**
+ * Usage:
+ *  In Google Admin, Manage Users:
+ *  - Navigate to Organization as desired
+ *  - "Download Users" at top
+ *  - "Currently filtered list", "All user info columns", and "Comma-separated values"
+ *
+ * node unit-member-has-unit-email.js ESAR kcesar.org User_Download_000000.csv
+ * 
+ */
 import fs from 'fs';
 import neatCsv from 'neat-csv';
-import { getChunkedList, saveBundle } from './d4h.js';
+import { getChunkedList, saveBundle } from './lib/d4h.js';
 
 const unitName = process.argv[2];
 const unitDomain = process.argv[3];

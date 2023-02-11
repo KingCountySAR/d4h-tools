@@ -1,4 +1,4 @@
-import { d4hClient, getChunkedList, saveBundle } from './d4h.js';
+import { d4hClient, getChunkedList, saveBundle } from './lib/d4h.js';
 import { subMonths, isAfter, addMonths, parseISO } from 'date-fns';
 
 const NOTE_PREFIX = 'cc-script:';
