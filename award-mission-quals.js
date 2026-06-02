@@ -1,54 +1,83 @@
-import { d4hClient, getChunkedList, saveBundle } from './lib/d4h.js';
+import { d4hv3Client, getChunkedList/*, saveBundle*/ } from './lib/d4hv3.mjs';
 import { subMonths, isAfter, addMonths, parseISO } from 'date-fns';
 
-const NOTE_PREFIX = 'cc-script:';
+//const TEST_USER = 'Smith, Joe';
+const TEST_USER = undefined;
+
+const ARMED = true;
 
 const rules = [
-  { name: 'ESAR Field', test: signin => signin?.role?.bundle == 'ESAR' && signin.role.title.includes("(Mission)"), needHours: 30, cutoff: subMonths(new Date(), 12) },
-  { name: 'SMR Field', test: signin => signin?.role?.bundle == 'SMR' && signin.role.title != 'SMR - ITOL', needHours: 30, cutoff: subMonths(new Date(), 12) },
+  { name: 'ESAR Field', test: (signin, role) => role?.deprecatedBundle == 'ESAR' && role.title.includes("(Mission)"), needHours: 30, cutoff: subMonths(new Date(), 12) },
+  { name: 'SMR Field', test: (signin, role) => role?.deprecatedBundle == 'SMR' && role.title != 'SMR - ITOL', needHours: 30, cutoff: subMonths(new Date(), 12) },
 ]
 
 const cutoff = new Date(Math.min.apply(this, rules.map(r => r.cutoff.getTime())));
 
+function verbose(...msg) {
+  if (process.argv[2] === '--verbose') {
+    console.log(...msg);
+  }
+}
+
 async function body() {
-  const qualsNotesField = (await getChunkedList('fields', `team/custom-fields`)).find(f => f.title === 'Qualification Scripts');
+  const qualsNotesField = (await getChunkedList(`custom-fields?target_resource_type=Member`)).find(f => f.title === 'Qualification Scripts');
   if (!qualsNotesField) {
     console.log('Can\'t find Qualifications field');
     return;
   }
-  const memberLookup = (await getChunkedList('members', `team/members?include_details=true&include_custom_fields=true`)).reduce((accum, cur) => ({ ...accum, [cur.id]: cur}), {});
-  
-  const signins = await getChunkedList('rosters', `team/attendance?activity=incident&status=attending&sort=date:desc&after=${cutoff.toJSON()}`);
 
-  let members = rules.reduce((accum, cur) => ({ ...accum, [cur.name]: {}}), {});
+  verbose('Downloading roles ...');
+  /*
+    {
+    owner: { resourceType: 'Team', id: {teamId}} },
+    id: number,
+    title: '{Title}',
+    order: 0,
+    createdAt: '2021-02-20T03:27:53.000Z',
+    updatedAt: '2021-02-20T03:27:53.000Z',
+    resourceType: 'Role',
+    cost: { use: null, hour: null },
+    deprecatedBundle: '{UnitName}'
+  }
+  */
+  const roles = (await getChunkedList('roles')).reduce((accum, cur) => ({...accum, [cur.id]: cur }), {});
+
+  verbose('Downloading members ...');
+  const memberLookup = (await getChunkedList('members')).reduce((accum, cur) => ({ ...accum, [cur.id]: cur}), {});
+
+  verbose('Downloading rosters ...');
+  const signins = await getChunkedList(`attendance?activity_resource_type=Incident&status=ATTENDING&starts_after=${cutoff.toJSON()}&sort=startsAt&order=desc`)
+
+  let membersByRule = rules.reduce((accum, cur) => ({ ...accum, [cur.name]: {}}), {});
 
   let awards = [];
   for (let i=0; i<signins.length; i++) {
     const signin = signins[i];
-
+    const role = roles[signin.role.id];
     for (let r=0; r < rules.length; r++) {
       const rule = rules[r];
-      if (!rule.test(signin)) continue;
+      if (!rule.test(signin, role)) continue;
 
-      let existing = members[rule.name][signin.member.id] ?? { minutes: 0 };
+      let existing = membersByRule[rule.name][signin.member.id] ?? { minutes: 0 };
       if (existing.minutes < rule.needHours * 60) {
         existing.minutes += signin.duration;
-        existing.date = signin.date;
-        existing.name = signin.member.name;
+        existing.date = signin.startsAt;
+        existing.name = memberLookup[signin.member.id].name;
         if (existing.minutes >= rule.needHours * 60) {
-          awards.push({ award: rule, member: memberLookup[signin.member.id], date: signin.date});
+          awards.push({ rule, member: memberLookup[signin.member.id], date: signin.startsAt});
         }
       }
-      members[rule.name][signin.member.id] = existing;
-
+      membersByRule[rule.name][signin.member.id] = existing;
     }
   }
 
+  verbose(`Need to award qualifications to ${awards.length} members`);
+  verbose(awards.map(f => `${f.member.name} ${f.rule.name} ${f.date}`).sort().join('\n'));
   for (let i = 0; i< awards.length; i++) {
     const a = awards[i];
     if (!a.member) {
-      if (a.award.test) {
-        console.log(`Entry for test award: ${a.award.name}`);
+      if (a.rule.test) {
+        console.log(`Entry for test award: ${a.rule.name}`);
         continue;
       } else {
         console.log('Unknown member', a);
@@ -56,28 +85,29 @@ async function body() {
       }
     }
 
-    console.log(`${a.date} - ${a.member.name} - ${a.award.name}`);
-    
+    verbose(`${a.member.name} met equivalents on ${a.date}`);
+
     let dirty = false;
     let noteInfo;
-    const fieldValue = a.member.custom_fields.find(mf => mf.id === qualsNotesField.id)?.value;
-  
+    let qualificationScriptField = a.member.customFieldValues.find(mf => mf.customField.id === qualsNotesField.id)
+    let fieldValue = qualificationScriptField?.value;
+
     try {
-      console.log(`##${fieldValue}##`);
-      noteInfo = JSON.parse(fieldValue ?? {});
-    } catch (err) { 
+      noteInfo = JSON.parse(fieldValue ?? '{}');
+    } catch (err) {
       console.log(`Failed to parse cc-script note for ${a.member.name}: **${fieldValue}** ${err}`);
       noteInfo = {};
     }
 
 
     const quals = [
-      27521, // Radio.PE
-      27529, // Search Techniques
-      27523, // Navigation
-      27520, // Survival
-      27533, // Rescue Techniques
-      27525, // GPS
+      36493, // Radio
+      36489, // Search Tactics
+      36487, // Map & Compass
+      36490, // Survival
+      36492, // Searcher Safety
+      36488, // GPS
+      36491, // Litter
     ];
     for (let j=0; j < quals.length; j++) {
       const qid = quals[j];
@@ -87,28 +117,35 @@ async function body() {
         continue;
       }
 
-      const params = new URLSearchParams()
-      params.append('member_id', a.member.id)
-      params.append('start_date', a.date)
-      console.log("Should write new qualification record");
-      const response = await d4hClient.post(`team/qualifications/${qid}/qualified-members`, params, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }});
+      const params = {
+        memberId: a.member.id,
+        startsAt: a.date,
+        qualificationId: qid
+      }
+      if (a.member.name === (TEST_USER ?? a.member.name)) {
+        console.log(`${a.member.name}\t${qid}\t${a.date}`);
+        if (ARMED) {
+          const response = await d4hv3Client.post(`member-qualification-awards`, params);
+        }
+      }
       noteInfo[qid] = a.date.substr(0, 10);
       dirty = true;
     }
 
-    if (dirty) {
-      console.log('  updating notes')
-
-      // Silly API makes us update the bundle all at once.
-      // Fetch the user's fields in the same bundle as Secondary Email to make sure we have the latest copy.
-      const bundle = (await getChunkedList('fields', `team/custom-fields/member/${a.member.id}`)).filter(f => f.bundle_id === qualsNotesField.bundle_id);
-      // Create a list of field_id / values for the bundle, replacing the Secondary Email value
-      const fieldValues = bundle.map(f => ({
-        id: f.id,
-        value: f.id == qualsNotesField.id ? JSON.stringify(noteInfo) : a.member.custom_fields.find(mf => mf.id === f.id)?.value
-      }));
-      // Save the bundle
-      await saveBundle('member', a.member.id, { fields: fieldValues });
+    if (dirty && ARMED && a.member.name === (TEST_USER ?? a.member.name)) {
+      const data = {
+        customFieldValues: [
+          ...a.member.customFieldValues.map(cf => ({ id: cf.customField.id, value: cf.value }))
+          .filter(f => f.id !== qualsNotesField.id),
+          { id: qualsNotesField.id, value: JSON.stringify(noteInfo)},
+        ],
+      }
+      
+      try {
+        await d4hv3Client.patch(`members/${a.member.id}`, data)
+      } catch (err) {
+        console.dir(err.response.data.detailObj.data, { depth: null })
+      }
     }
   }
   console.log(awards.length)
